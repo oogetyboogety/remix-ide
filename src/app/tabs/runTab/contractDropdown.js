@@ -2,10 +2,12 @@ var yo = require('yo-yo')
 var css = require('../styles/run-tab-styles')
 var modalDialogCustom = require('../../ui/modal-dialog-custom')
 var remixLib = require('remix-lib')
+var Remixd = require('../../../lib/remixd')
 var EventManager = remixLib.EventManager
 var confirmDialog = require('../../execution/confirmDialog')
 var modalDialog = require('../../ui/modaldialog')
 var MultiParamManager = require('../../../multiParamManager')
+const registry = require('../../../global/registry')
 
 class ContractDropdownUI {
   constructor (dropdownLogic, logCallback) {
@@ -31,6 +33,8 @@ class ContractDropdownUI {
       }
       this.setInputParamsPlaceHolder()
 
+      this.setPrivateFromAccounts()
+      this.setPrivateToAccounts()
       if (success) {
         this.compFails.style.display = 'none'
         document.querySelector(`.${css.contractNames}`).classList.remove(css.contractNamesError)
@@ -52,6 +56,10 @@ class ContractDropdownUI {
 
     this.createPanel = yo`<div class="${css.button}"></div>`
     this.orLabel = yo`<div class="${css.orLabel}">or</div>`
+
+    this.privateFromAddress = yo`<select class="${css.select} custom-select" id="privateFromAddress"> <option value="test"> testText </option> </select>`
+    this.privateForAddress = yo`<select class="${css.select} custom-select" id="privateForAddress" > </select>`
+
     var el = yo`
       <div class="${css.container}">
         <div class="${css.subcontainer}">
@@ -63,6 +71,10 @@ class ContractDropdownUI {
           <div class="${css.button} ${css.atAddressSect}">
             <div class="${css.atAddress} btn btn-sm btn-info" onclick=${this.loadFromAddress.bind(this)}>At Address</div>
             ${this.atAddressButtonInput}
+          </div>
+          <div class="${css.subcontainer}">
+            ${this.privateFromAddress}
+            ${this.privateForAddress}
           </div>
         </div>
       </div>
@@ -108,6 +120,30 @@ class ContractDropdownUI {
     var compilerAtributeName = contract.getAttribute('compiler')
 
     return this.dropdownLogic.getSelectedContract(contractName, compilerAtributeName)
+  }
+
+  setPrivateFromAccounts () {
+    console.log(this.privateFromAddress)
+    var el = yo`<option value="${document.querySelector('#runTabView #txorigin').value}" selected>${document.querySelector('#runTabView #txorigin').textContent}</option>`
+    document.querySelector('#privateFromAddress').options.add(el)
+  }
+
+  setPrivateToAccounts () {
+    var remixd = new Remixd(65522)
+    console.log(remixd)
+    var privateForAddressList = document.querySelector('#privateForAddress')
+    remixd.ensureSocket((error) => {
+      if (error) console.log(error)
+      remixd._isReady = !error
+      remixd.call('getweb3peers', 'getPeers', {node1ProviderIPCPath: '/home/jchrist/quorum-examples/qdata/dd'}, (result) => {
+        console.log(result)
+        result.forEach((peer) => {
+            var el = yo`<option>${peer.id}</option>`
+            privateForAddressList.options.add(el)
+        })
+      })
+    })
+    ///remixd.call('sharedfolder', 'get', { path }, (error, content) => callback(error, content))
   }
 
   createInstance (args) {
